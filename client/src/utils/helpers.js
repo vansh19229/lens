@@ -59,7 +59,8 @@ export const calculateLensPrice = (customization) => {
   if (!customization) return 0;
   let total = 0;
   if (customization.lensType) {
-    const key = customization.lensType.replace(/\s+/g, '').charAt(0).toLowerCase() + customization.lensType.replace(/\s+/g, '').slice(1);
+    const normalized = customization.lensType.replace(/\s+/g, '');
+    const key = normalized.charAt(0).toLowerCase() + normalized.slice(1);
     total += LENS_PRICES.lensType[key] || 0;
   }
   if (customization.material) {
