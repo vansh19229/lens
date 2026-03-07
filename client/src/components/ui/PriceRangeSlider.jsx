@@ -1,58 +1,74 @@
-import { useState } from 'react';
-import { formatPrice } from '../../utils/helpers';
+import { useCallback } from 'react';
 
-const PriceRangeSlider = ({ min = 0, max = 10000, value, onChange }) => {
-  const [localMin, setLocalMin] = useState(value?.[0] ?? min);
-  const [localMax, setLocalMax] = useState(value?.[1] ?? max);
+export default function PriceRangeSlider({ min = 0, max = 10000, value = [0, 10000], onChange }) {
+  const [minVal, maxVal] = value;
+  const range = max - min;
+
+  const getPercent = useCallback((val) => Math.round(((val - min) / range) * 100), [min, range]);
 
   const handleMinChange = (e) => {
-    const val = Math.min(Number(e.target.value), localMax - 100);
-    setLocalMin(val);
-    onChange([val, localMax]);
+    const newMin = Math.min(Number(e.target.value), maxVal - 100);
+    onChange([newMin, maxVal]);
   };
 
   const handleMaxChange = (e) => {
-    const val = Math.max(Number(e.target.value), localMin + 100);
-    setLocalMax(val);
-    onChange([localMin, val]);
+    const newMax = Math.max(Number(e.target.value), minVal + 100);
+    onChange([minVal, newMax]);
   };
 
+  const minPercent = getPercent(minVal);
+  const maxPercent = getPercent(maxVal);
+
   return (
-    <div className="space-y-3">
-      <div className="flex justify-between text-sm font-medium text-gray-700">
-        <span>{formatPrice(localMin)}</span>
-        <span>{formatPrice(localMax)}</span>
+    <div className="space-y-4">
+      {/* Value display */}
+      <div className="flex items-center justify-between">
+        <div className="bg-slate-100 dark:bg-slate-800 rounded-xl px-3 py-1.5">
+          <span className="text-sm font-semibold text-slate-900 dark:text-white">₹{minVal.toLocaleString()}</span>
+        </div>
+        <div className="text-xs text-slate-400 dark:text-slate-500">to</div>
+        <div className="bg-slate-100 dark:bg-slate-800 rounded-xl px-3 py-1.5">
+          <span className="text-sm font-semibold text-slate-900 dark:text-white">₹{maxVal.toLocaleString()}</span>
+        </div>
       </div>
+
+      {/* Slider */}
       <div className="relative h-2">
-        <div className="absolute inset-0 bg-gray-200 rounded-full" />
+        {/* Track */}
+        <div className="absolute top-0 left-0 right-0 h-2 bg-slate-200 dark:bg-slate-700 rounded-full" />
+        {/* Range */}
         <div
-          className="absolute h-2 bg-blue-500 rounded-full"
-          style={{
-            left: `${((localMin - min) / (max - min)) * 100}%`,
-            right: `${100 - ((localMax - min) / (max - min)) * 100}%`,
-          }}
+          className="absolute top-0 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
+          style={{ left: `${minPercent}%`, width: `${maxPercent - minPercent}%` }}
         />
         <input
           type="range"
           min={min}
           max={max}
-          step={100}
-          value={localMin}
+          value={minVal}
           onChange={handleMinChange}
-          className="absolute inset-0 w-full opacity-0 cursor-pointer h-2"
+          className="absolute w-full h-full opacity-0 cursor-pointer"
+          style={{ zIndex: minVal > max - 100 ? 5 : 3 }}
         />
         <input
           type="range"
           min={min}
           max={max}
-          step={100}
-          value={localMax}
+          value={maxVal}
           onChange={handleMaxChange}
-          className="absolute inset-0 w-full opacity-0 cursor-pointer h-2"
+          className="absolute w-full h-full opacity-0 cursor-pointer"
+          style={{ zIndex: 4 }}
+        />
+        {/* Thumbs */}
+        <div
+          className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white dark:bg-blue-500 border-2 border-blue-500 dark:border-blue-400 rounded-full shadow-md shadow-blue-500/30 pointer-events-none"
+          style={{ left: `calc(${minPercent}% - 8px)` }}
+        />
+        <div
+          className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white dark:bg-purple-500 border-2 border-purple-500 dark:border-purple-400 rounded-full shadow-md shadow-purple-500/30 pointer-events-none"
+          style={{ left: `calc(${maxPercent}% - 8px)` }}
         />
       </div>
     </div>
   );
-};
-
-export default PriceRangeSlider;
+}

@@ -1,130 +1,138 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiSearch, FiX } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useDebounce } from '../../hooks/useDebounce';
-import api from '../../utils/api';
-import { formatPrice } from '../../utils/helpers';
+import { FiSearch, FiX, FiArrowRight } from 'react-icons/fi';
+import axios from 'axios';
 
-const SearchBar = ({ className = '', onClose }) => {
+export default function SearchBar({ className = '', placeholder = 'Search eyewear...' }) {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const debouncedQuery = useDebounce(query, 300);
+  const [loading, setLoading] = useState(false);
+  const [focused, setFocused] = useState(false);
   const navigate = useNavigate();
-  const inputRef = useRef(null);
-  const containerRef = useRef(null);
+  const ref = useRef(null);
+  const debounceRef = useRef(null);
 
   useEffect(() => {
-    if (debouncedQuery.trim().length >= 2) {
-      fetchSuggestions(debouncedQuery);
-    } else {
+    if (query.length < 2) {
       setSuggestions([]);
+      return;
     }
-  }, [debouncedQuery]);
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const res = await axios.get(`/api/products?search=${encodeURIComponent(query)}&limit=5`);
+        setSuggestions(res.data.products || []);
+      } catch {
+        setSuggestions([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(debounceRef.current);
+  }, [query]);
 
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setShowSuggestions(false);
+    const handleClick = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) {
+        setFocused(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  const fetchSuggestions = async (q) => {
-    try {
-      setIsLoading(true);
-      const res = await api.get(`/products/search?q=${encodeURIComponent(q)}&limit=5`);
-      setSuggestions(res.data.products || []);
-      setShowSuggestions(true);
-    } catch {
-      setSuggestions([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSubmit = (e) => {
+  const handleSearch = (e) => {
     e.preventDefault();
     if (query.trim()) {
       navigate(`/products?search=${encodeURIComponent(query.trim())}`);
-      setShowSuggestions(false);
-      if (onClose) onClose();
+      setQuery('');
+      setFocused(false);
     }
   };
 
-  const handleSuggestionClick = (product) => {
-    navigate(`/products/${product._id}`);
-    setShowSuggestions(false);
-    setQuery('');
-    if (onClose) onClose();
-  };
+  const showDropdown = focused && (suggestions.length > 0 || loading);
 
   return (
-    <div ref={containerRef} className={`relative ${className}`}>
-      <form onSubmit={handleSubmit} className="relative">
-        <div className="flex items-center bg-white rounded-xl border-2 border-gray-200 focus-within:border-blue-500 transition-colors shadow-sm">
-          <FiSearch className="ml-3 text-gray-400" size={18} />
+    <div ref={ref} className={`relative ${className}`}>
+      <form onSubmit={handleSearch}>
+        <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 ${
+          focused
+            ? 'bg-white dark:bg-slate-800 ring-2 ring-blue-500/50 shadow-lg shadow-blue-500/10'
+            : 'bg-white/10 dark:bg-slate-800/50 hover:bg-white/20 dark:hover:bg-slate-800/70'
+        }`}>
+          <FiSearch className="w-5 h-5 text-slate-400 flex-shrink-0" />
           <input
-            ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-            placeholder="Search frames, brands, styles..."
-            className="flex-1 px-3 py-2.5 text-sm bg-transparent outline-none text-gray-900 placeholder-gray-400"
+            onFocus={() => setFocused(true)}
+            placeholder={placeholder}
+            className="flex-1 bg-transparent outline-none text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-sm font-medium"
           />
           {query && (
-            <button type="button" onClick={() => { setQuery(''); setSuggestions([]); }} className="mr-2 text-gray-400 hover:text-gray-600">
-              <FiX size={16} />
+            <button
+              type="button"
+              onClick={() => { setQuery(''); setSuggestions([]); }}
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+            >
+              <FiX className="w-4 h-4" />
             </button>
           )}
-          <button type="submit" className="mr-2 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors">
+          <button
+            type="submit"
+            className="px-4 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-semibold rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 flex items-center gap-1.5 shadow-md shadow-blue-500/25"
+          >
             Search
+            <FiArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
       </form>
 
       <AnimatePresence>
-        {showSuggestions && suggestions.length > 0 && (
+        {showDropdown && (
           <motion.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50"
+            transition={{ duration: 0.15 }}
+            className="absolute top-full mt-2 left-0 right-0 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/50 border border-slate-200 dark:border-slate-700/50 overflow-hidden z-50"
           >
-            {isLoading ? (
-              <div className="p-4 text-center text-gray-400 text-sm">Searching...</div>
+            {loading ? (
+              <div className="flex items-center justify-center py-6">
+                <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              </div>
             ) : (
-              suggestions.map((product) => (
-                <button
-                  key={product._id}
-                  onClick={() => handleSuggestionClick(product)}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-blue-50 transition-colors text-left border-b border-gray-50 last:border-0"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden">
-                    {product.images?.[0] ? (
-                      <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-lg">🕶️</div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{product.name}</p>
-                    <p className="text-xs text-gray-500">{product.brand}</p>
-                  </div>
-                  <span className="text-sm font-semibold text-blue-600">{formatPrice(product.price)}</span>
-                </button>
-              ))
+              <div className="py-2">
+                {suggestions.map((product) => (
+                  <button
+                    key={product._id}
+                    onClick={() => {
+                      navigate(`/products/${product._id}`);
+                      setQuery('');
+                      setFocused(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
+                  >
+                    <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center">
+                      {product.images?.[0] ? (
+                        <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-lg">👓</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{product.name}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{product.brand} · ₹{product.price?.toLocaleString()}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
             )}
           </motion.div>
         )}
       </AnimatePresence>
     </div>
   );
-};
-
-export default SearchBar;
+}
