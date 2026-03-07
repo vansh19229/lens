@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import { FiTruck, FiShield, FiStar, FiRefreshCw, FiArrowRight, FiZap } from 'react-icons/fi';
 import SearchBar from '../components/ui/SearchBar';
 import ProductCard from '../components/ui/ProductCard';

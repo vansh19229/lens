@@ -28,7 +28,7 @@ const CartDrawer = () => {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed right-0 top-0 h-full w-full max-w-sm z-50 shadow-[−20px_0_60px_rgba(0,0,0,0.6)] flex flex-col"
+            className="fixed right-0 top-0 h-full w-full max-w-sm z-50 shadow-[-20px_0_60px_rgba(0,0,0,0.6)] flex flex-col"
             style={{ background: 'rgba(14,14,14,0.95)', backdropFilter: 'blur(20px)', borderLeft: '1px solid rgba(255,255,255,0.06)' }}
           >
             {/* Header */}
