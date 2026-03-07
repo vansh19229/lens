@@ -80,7 +80,7 @@ export default function CartDrawer() {
                     {/* Image */}
                     <div className="w-18 h-18 bg-white dark:bg-slate-800 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center shadow-sm">
                       {item.images?.[0] ? (
-                        <img src={item.images[0]} alt={item.name} className="w-full h-full object-cover" />
+                        <img src={item.images?.[0]} alt={item.name} className="w-full h-full object-cover" />
                       ) : (
                         <span className="text-2xl">👓</span>
                       )}
