@@ -1,97 +1,134 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FiPackage, FiDollarSign, FiUsers, FiShoppingBag, FiTrendingUp } from 'react-icons/fi';
+import { motion } from 'framer-motion';
+import { FiPackage, FiDollarSign, FiUsers, FiGrid, FiTrendingUp, FiArrowRight } from 'react-icons/fi';
 import api from '../../utils/api';
-import { formatPrice, getOrderStatusColor } from '../../utils/helpers';
 
-const AdminDashboard = () => {
+const statusColors = {
+  pending: 'bg-amber-900/30 text-amber-400',
+  processing: 'bg-blue-900/30 text-blue-400',
+  shipped: 'bg-purple-900/30 text-purple-400',
+  delivered: 'bg-emerald-900/30 text-emerald-400',
+  cancelled: 'bg-red-900/30 text-red-400',
+};
+
+export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
+  const [recentOrders, setRecentOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/admin/dashboard')
-      .then(res => setStats(res.data))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    const fetchData = async () => {
+      try {
+        const [statsRes, ordersRes] = await Promise.all([
+          api.get('/admin/stats'),
+          api.get('/admin/orders?limit=5'),
+        ]);
+        setStats(statsRes.data);
+        setRecentOrders(ordersRes.data.orders || []);
+      } catch {
+        // Silent fail
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
   }, []);
 
   const statCards = [
-    { label: 'Total Orders', value: stats?.totalOrders || 0, icon: FiPackage, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Total Revenue', value: formatPrice(stats?.revenue || 0), icon: FiDollarSign, color: 'text-green-600', bg: 'bg-green-50' },
-    { label: 'Total Users', value: stats?.totalUsers || 0, icon: FiUsers, color: 'text-purple-600', bg: 'bg-purple-50' },
-    { label: 'Total Products', value: stats?.totalProducts || 0, icon: FiShoppingBag, color: 'text-orange-600', bg: 'bg-orange-50' },
+    { label: 'Total Orders', value: stats?.totalOrders || 0, icon: FiPackage, color: 'text-blue-400', bg: 'bg-blue-900/20', border: 'border-blue-800/30' },
+    { label: 'Revenue', value: `₹${(stats?.totalRevenue || 0).toLocaleString()}`, icon: FiDollarSign, color: 'text-emerald-400', bg: 'bg-emerald-900/20', border: 'border-emerald-800/30' },
+    { label: 'Total Users', value: stats?.totalUsers || 0, icon: FiUsers, color: 'text-purple-400', bg: 'bg-purple-900/20', border: 'border-purple-800/30' },
+    { label: 'Products', value: stats?.totalProducts || 0, icon: FiGrid, color: 'text-orange-400', bg: 'bg-orange-900/20', border: 'border-orange-800/30' },
   ];
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Dashboard</h1>
-      
-      {loading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-          {[1,2,3,4].map(i => <div key={i} className="h-28 bg-gray-200 rounded-2xl animate-pulse" />)}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-          {statCards.map(card => (
-            <div key={card.label} className="bg-white rounded-2xl p-5 shadow-sm">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">{card.label}</p>
-                  <p className="text-2xl font-extrabold text-gray-900">{card.value}</p>
-                </div>
-                <div className={`w-11 h-11 ${card.bg} rounded-xl flex items-center justify-center`}>
-                  <card.icon size={20} className={card.color} />
-                </div>
+    <div className="p-8">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+        <p className="text-slate-400 text-sm mt-1">Welcome back! Here's what's happening.</p>
+      </div>
+
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        {statCards.map((card, i) => (
+          <motion.div
+            key={card.label}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.1 }}
+            className={`${card.bg} border ${card.border} rounded-2xl p-6`}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className={`w-10 h-10 ${card.bg} rounded-xl border ${card.border} flex items-center justify-center`}>
+                <card.icon className={`w-5 h-5 ${card.color}`} />
               </div>
+              <FiTrendingUp className="w-4 h-4 text-slate-500" />
             </div>
-          ))}
-        </div>
-      )}
+            {loading ? (
+              <div className="h-7 bg-slate-800 rounded-full w-16 mb-1" />
+            ) : (
+              <p className="text-2xl font-bold text-white">{card.value}</p>
+            )}
+            <p className="text-sm text-slate-400 mt-1">{card.label}</p>
+          </motion.div>
+        ))}
+      </div>
 
       {/* Recent Orders */}
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 className="font-bold text-gray-900">Recent Orders</h2>
-          <Link to="/admin/orders" className="text-blue-600 text-sm hover:underline">View All →</Link>
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800">
+          <h2 className="font-bold text-white">Recent Orders</h2>
+          <Link to="/admin/orders" className="flex items-center gap-1.5 text-sm text-blue-400 hover:text-blue-300 transition-colors">
+            View all <FiArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
-        <div className="overflow-x-auto">
-          {loading ? (
-            <div className="p-6 space-y-3">
-              {[1,2,3,4,5].map(i => <div key={i} className="h-10 bg-gray-100 rounded-lg animate-pulse" />)}
-            </div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  {['Order ID', 'Customer', 'Date', 'Amount', 'Status'].map(h => (
-                    <th key={h} className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
-                  ))}
+
+        {loading ? (
+          <div className="p-6 space-y-3">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-12 bg-slate-800 rounded-xl animate-pulse" />
+            ))}
+          </div>
+        ) : recentOrders.length === 0 ? (
+          <div className="p-12 text-center">
+            <FiPackage className="w-10 h-10 text-slate-600 mx-auto mb-3" />
+            <p className="text-slate-400">No orders yet</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="text-left text-xs font-medium text-slate-500 uppercase tracking-wider border-b border-slate-800">
+                  <th className="px-6 py-3">Order ID</th>
+                  <th className="px-6 py-3">Customer</th>
+                  <th className="px-6 py-3">Amount</th>
+                  <th className="px-6 py-3">Status</th>
+                  <th className="px-6 py-3">Date</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
-                {(stats?.recentOrders || []).map(order => (
-                  <tr key={order._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-5 py-3.5 font-mono text-xs text-gray-600">#{order._id.slice(-8).toUpperCase()}</td>
-                    <td className="px-5 py-3.5 font-medium">{order.user?.name || '—'}</td>
-                    <td className="px-5 py-3.5 text-gray-500">{new Date(order.createdAt).toLocaleDateString('en-IN')}</td>
-                    <td className="px-5 py-3.5 font-semibold">{formatPrice(order.totalPrice)}</td>
-                    <td className="px-5 py-3.5">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${getOrderStatusColor(order.orderStatus)}`}>
-                        {order.orderStatus}
+              <tbody className="divide-y divide-slate-800">
+                {recentOrders.map((order) => (
+                  <tr key={order._id} className="hover:bg-slate-800/50 transition-colors">
+                    <td className="px-6 py-4 font-mono text-sm text-slate-300">#{order._id?.slice(-8).toUpperCase()}</td>
+                    <td className="px-6 py-4 text-sm text-slate-300">{order.user?.name || 'N/A'}</td>
+                    <td className="px-6 py-4 text-sm font-semibold text-white">₹{order.totalAmount?.toLocaleString()}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-3 py-1 rounded-lg text-xs font-medium capitalize ${statusColors[order.status] || statusColors.pending}`}>
+                        {order.status}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-400">
+                      {new Date(order.createdAt).toLocaleDateString()}
                     </td>
                   </tr>
                 ))}
-                {(!stats?.recentOrders || stats.recentOrders.length === 0) && (
-                  <tr><td colSpan={5} className="px-5 py-10 text-center text-gray-400">No orders yet</td></tr>
-                )}
               </tbody>
             </table>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
-};
-
-export default AdminDashboard;
+}

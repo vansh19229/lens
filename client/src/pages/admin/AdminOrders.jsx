@@ -1,87 +1,143 @@
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { FiPackage, FiSearch } from 'react-icons/fi';
 import api from '../../utils/api';
-import { formatPrice, getOrderStatusColor } from '../../utils/helpers';
 import toast from 'react-hot-toast';
 
-const STATUS_OPTIONS = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
+const statusOptions = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+const statusColors = {
+  pending: 'bg-amber-900/30 text-amber-400 border-amber-800/40',
+  processing: 'bg-blue-900/30 text-blue-400 border-blue-800/40',
+  shipped: 'bg-purple-900/30 text-purple-400 border-purple-800/40',
+  delivered: 'bg-emerald-900/30 text-emerald-400 border-emerald-800/40',
+  cancelled: 'bg-red-900/30 text-red-400 border-red-800/40',
+};
 
-const AdminOrders = () => {
+export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [updating, setUpdating] = useState(null);
 
   useEffect(() => {
-    api.get('/admin/orders')
-      .then(res => setOrders(res.data.orders || []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    fetchOrders();
   }, []);
 
-  const updateStatus = async (id, orderStatus) => {
+  const fetchOrders = async () => {
+    setLoading(true);
     try {
-      await api.put(`/admin/orders/${id}/status`, { orderStatus });
-      setOrders(prev => prev.map(o => o._id === id ? { ...o, orderStatus } : o));
-      toast.success('Status updated!');
+      const res = await api.get('/admin/orders');
+      setOrders(res.data.orders || []);
     } catch {
-      toast.error('Update failed');
+      toast.error('Failed to load orders');
+    } finally {
+      setLoading(false);
     }
   };
 
+  const updateStatus = async (orderId, status) => {
+    setUpdating(orderId);
+    try {
+      await api.put(`/admin/orders/${orderId}`, { status });
+      setOrders(orders.map(o => o._id === orderId ? { ...o, status } : o));
+      toast.success('Order status updated');
+    } catch {
+      toast.error('Failed to update status');
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  const filtered = orders.filter(o =>
+    o._id?.toLowerCase().includes(search.toLowerCase()) ||
+    o.user?.name?.toLowerCase().includes(search.toLowerCase()) ||
+    o.user?.email?.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Orders</h1>
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50">
-              <tr>
-                {['Order ID', 'Customer', 'Date', 'Items', 'Amount', 'Status', 'Action'].map(h => (
-                  <th key={h} className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {loading ? (
-                <tr><td colSpan={7} className="py-10 text-center">
-                  <div className="flex justify-center"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>
-                </td></tr>
-              ) : orders.length === 0 ? (
-                <tr><td colSpan={7} className="py-10 text-center text-gray-400">No orders yet</td></tr>
-              ) : (
-                orders.map(order => (
-                  <tr key={order._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-5 py-3.5 font-mono text-xs text-gray-600">#{order._id.slice(-8).toUpperCase()}</td>
-                    <td className="px-5 py-3.5">
-                      <p className="font-medium text-gray-900">{order.user?.name || '—'}</p>
-                      <p className="text-xs text-gray-400">{order.user?.email}</p>
+    <div className="p-8">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Orders</h1>
+          <p className="text-slate-400 text-sm mt-1">{orders.length} total orders</p>
+        </div>
+      </div>
+
+      {/* Search */}
+      <div className="relative mb-6">
+        <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by order ID, customer name..."
+          className="w-full max-w-md pl-11 pr-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+        />
+      </div>
+
+      {/* Table */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+        {loading ? (
+          <div className="p-8 space-y-3">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="h-14 bg-slate-800 rounded-xl animate-pulse" />
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="p-16 text-center">
+            <FiPackage className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+            <p className="text-slate-400">No orders found</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="text-left text-xs font-medium text-slate-500 uppercase tracking-wider border-b border-slate-800">
+                  <th className="px-6 py-4">Order ID</th>
+                  <th className="px-6 py-4">Customer</th>
+                  <th className="px-6 py-4">Items</th>
+                  <th className="px-6 py-4">Amount</th>
+                  <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4">Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800">
+                {filtered.map((order) => (
+                  <motion.tr
+                    key={order._id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="hover:bg-slate-800/50 transition-colors"
+                  >
+                    <td className="px-6 py-4 font-mono text-sm text-slate-300">#{order._id?.slice(-8).toUpperCase()}</td>
+                    <td className="px-6 py-4">
+                      <p className="text-sm font-medium text-white">{order.user?.name || 'N/A'}</p>
+                      <p className="text-xs text-slate-500">{order.user?.email}</p>
                     </td>
-                    <td className="px-5 py-3.5 text-gray-500 text-xs">{new Date(order.createdAt).toLocaleDateString('en-IN')}</td>
-                    <td className="px-5 py-3.5 text-gray-600">{order.items?.length || 0}</td>
-                    <td className="px-5 py-3.5 font-semibold">{formatPrice(order.totalPrice)}</td>
-                    <td className="px-5 py-3.5">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${getOrderStatusColor(order.orderStatus)}`}>
-                        {order.orderStatus}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5">
+                    <td className="px-6 py-4 text-sm text-slate-400">{order.items?.length || 0} items</td>
+                    <td className="px-6 py-4 text-sm font-bold text-white">₹{order.totalAmount?.toLocaleString()}</td>
+                    <td className="px-6 py-4">
                       <select
-                        value={order.orderStatus || 'Pending'}
-                        onChange={e => updateStatus(order._id, e.target.value)}
-                        className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={order.status}
+                        onChange={(e) => updateStatus(order._id, e.target.value)}
+                        disabled={updating === order._id}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-medium border appearance-none cursor-pointer focus:outline-none disabled:opacity-60 transition-all ${statusColors[order.status] || statusColors.pending}`}
                       >
-                        {STATUS_OPTIONS.map(s => (
-                          <option key={s} value={s} className="capitalize">{s}</option>
+                        {statusOptions.map(s => (
+                          <option key={s} value={s} className="bg-slate-900 text-white capitalize">{s}</option>
                         ))}
                       </select>
                     </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    <td className="px-6 py-4 text-sm text-slate-400">
+                      {new Date(order.createdAt).toLocaleDateString()}
+                    </td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
-};
-
-export default AdminOrders;
+}
