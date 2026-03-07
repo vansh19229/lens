@@ -19,15 +19,16 @@ const StarRating = ({ rating = 0, size = 'sm', showCount = false, count = 0 }) =
           ) : s === 'half' ? (
             <FaStarHalfAlt key={i} className="text-amber-400" />
           ) : (
-            <FaRegStar key={i} className="text-amber-300" />
+            <FaRegStar key={i} className="text-white/20" />
           )
         )}
       </div>
       {showCount && (
-        <span className="text-xs text-gray-500">({count})</span>
+        <span className="text-xs text-white/30">({count})</span>
       )}
     </div>
   );
 };
 
 export default StarRating;
+

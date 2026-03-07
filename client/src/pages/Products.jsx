@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { FiFilter, FiX, FiChevronDown } from 'react-icons/fi';
 import ProductCard from '../components/ui/ProductCard';
 import SkeletonCard from '../components/ui/SkeletonCard';
@@ -24,25 +24,46 @@ const SORT_OPTIONS = [
 const FilterSection = ({ title, children, defaultOpen = true }) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border-b border-gray-100 pb-4 mb-4">
+    <div className="border-b border-white/06 pb-4 mb-4">
       <button onClick={() => setOpen(!open)} className="flex items-center justify-between w-full mb-3">
-        <h4 className="text-sm font-semibold text-gray-900">{title}</h4>
-        <FiChevronDown className={`text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} size={16} />
+        <h4 className="text-sm font-semibold text-white/80">{title}</h4>
+        <FiChevronDown
+          className={`text-white/30 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          size={15}
+        />
       </button>
-      {open && children}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            {children}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
 
 const CheckboxFilter = ({ label, checked, onChange }) => (
-  <label className="flex items-center gap-2 cursor-pointer group py-1">
-    <input
-      type="checkbox"
-      checked={checked}
-      onChange={onChange}
-      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-    />
-    <span className="text-sm text-gray-600 group-hover:text-gray-900 capitalize">{label}</span>
+  <label className="flex items-center gap-2.5 cursor-pointer group py-1.5">
+    <div className={`w-4 h-4 rounded-md border flex items-center justify-center flex-shrink-0 transition-all duration-150 ${
+      checked ? 'bg-blue-600 border-blue-600' : 'border-white/20 group-hover:border-white/40'
+    }`}>
+      {checked && (
+        <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+          <path d="M1 4l2.5 2.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )}
+    </div>
+    <input type="checkbox" checked={checked} onChange={onChange} className="sr-only" />
+    <span className={`text-sm capitalize transition-colors duration-150 ${checked ? 'text-white' : 'text-white/45 group-hover:text-white/70'}`}>
+      {label}
+    </span>
   </label>
 );
 
@@ -123,11 +144,14 @@ const Products = () => {
     filters.genders.length || filters.minPrice > 0 || filters.maxPrice < 10000;
 
   const FilterPanel = () => (
-    <div className="space-y-0">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-bold text-gray-900">Filters</h3>
+    <div>
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="font-bold text-white">Filters</h3>
         {hasActiveFilters && (
-          <button onClick={clearFilters} className="text-xs text-blue-600 font-medium hover:underline">Clear All</button>
+          <button onClick={clearFilters}
+            className="text-xs text-blue-400 font-medium hover:text-blue-300 transition-colors duration-200">
+            Clear All
+          </button>
         )}
       </div>
       <FilterSection title="Category">
@@ -198,136 +222,166 @@ const Products = () => {
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <Breadcrumb items={[
-        { label: 'Home', href: '/' },
-        { label: filters.category ? filters.category.replace('-', ' ') : 'All Products' },
-      ]} />
+    <div className="bg-[#080808] min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        <Breadcrumb items={[
+          { label: 'Home', href: '/' },
+          { label: filters.category ? filters.category.replace('-', ' ') : 'All Products' },
+        ]} />
 
-      <div className="flex gap-8">
-        {/* Desktop Sidebar */}
-        <aside className="hidden lg:block w-60 flex-shrink-0">
-          <div className="bg-white rounded-2xl p-5 shadow-sm sticky top-24">
-            <FilterPanel />
-          </div>
-        </aside>
+        <div className="flex gap-6 mt-2">
+          {/* Desktop Sidebar */}
+          <aside className="hidden lg:block w-56 flex-shrink-0">
+            <div className="glass-card p-5 sticky top-24">
+              <FilterPanel />
+            </div>
+          </aside>
 
-        {/* Main Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 capitalize">
-                {filters.category ? filters.category.replace('-', ' ') : 'All Products'}
-                {filters.search && <span className="text-gray-400 text-lg"> — "{filters.search}"</span>}
-              </h1>
-              <p className="text-sm text-gray-500 mt-0.5">{total} results found</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setShowMobileFilter(true)}
-                className="lg:hidden flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium"
-              >
-                <FiFilter size={16} /> Filters
-                {hasActiveFilters && <span className="bg-blue-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">!</span>}
-              </button>
-              <select
-                value={filters.sort}
-                onChange={e => updateFilter('sort', e.target.value)}
-                className="px-4 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </div>
-          </div>
-
-          {/* Active filter tags */}
-          {hasActiveFilters && (
-            <div className="flex flex-wrap gap-2 mb-4">
-              {filters.category && (
-                <span className="flex items-center gap-1 bg-blue-100 text-blue-700 text-xs px-3 py-1 rounded-full font-medium">
-                  {filters.category}
-                  <button onClick={() => updateFilter('category', '')}><FiX size={12} /></button>
-                </span>
-              )}
-              {filters.brands.map(b => (
-                <span key={b} className="flex items-center gap-1 bg-blue-100 text-blue-700 text-xs px-3 py-1 rounded-full font-medium">
-                  {b}<button onClick={() => updateFilter('brand', b, true)}><FiX size={12} /></button>
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Products Grid */}
-          {loading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-5">
-              {Array(limit).fill(0).map((_, i) => <SkeletonCard key={i} />)}
-            </div>
-          ) : products.length === 0 ? (
-            <div className="text-center py-20">
-              <div className="text-6xl mb-4">🔍</div>
-              <h3 className="text-xl font-semibold text-gray-700 mb-2">No products found</h3>
-              <p className="text-gray-400 mb-4">Try adjusting your filters or search term</p>
-              <button onClick={clearFilters} className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium">
-                Clear Filters
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-5">
-              {products.map((p, i) => <ProductCard key={p._id} product={p} index={i} />)}
-            </div>
-          )}
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex justify-center gap-2 mt-10">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+          {/* Main Content */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+              <div>
+                <h1 className="text-2xl font-bold text-white capitalize">
+                  {filters.category ? filters.category.replace('-', ' ') : 'All Products'}
+                  {filters.search && (
+                    <span className="text-white/30 text-lg"> — "{filters.search}"</span>
+                  )}
+                </h1>
+                <p className="text-sm text-white/30 mt-0.5">{total} results found</p>
+              </div>
+              <div className="flex items-center gap-3">
                 <button
-                  key={p}
-                  onClick={() => {
-                    const params = new URLSearchParams(searchParams);
-                    params.set('page', p);
-                    setSearchParams(params);
-                  }}
-                  className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
-                    p === page ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-700 hover:border-blue-300'
-                  }`}
+                  onClick={() => setShowMobileFilter(true)}
+                  className="lg:hidden flex items-center gap-2 px-4 py-2.5 glass-card text-white/70 text-sm font-medium rounded-xl hover:text-white transition-colors"
                 >
-                  {p}
+                  <FiFilter size={15} /> Filters
+                  {hasActiveFilters && (
+                    <span className="bg-blue-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">!</span>
+                  )}
                 </button>
-              ))}
+                <select
+                  value={filters.sort}
+                  onChange={e => updateFilter('sort', e.target.value)}
+                  className="px-4 py-2.5 glass-card text-white/70 text-sm rounded-xl border border-white/08 focus:border-blue-500/40 cursor-pointer"
+                  style={{ background: 'rgba(255,255,255,0.04)' }}
+                >
+                  {SORT_OPTIONS.map(o => (
+                    <option key={o.value} value={o.value} style={{ background: '#1a1a1a', color: '#f8fafc' }}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-          )}
+
+            {/* Active filter tags */}
+            {hasActiveFilters && (
+              <div className="flex flex-wrap gap-2 mb-5">
+                {filters.category && (
+                  <span className="flex items-center gap-1.5 glass-card text-blue-400 text-xs px-3 py-1.5 rounded-full font-medium border border-blue-500/20">
+                    {filters.category}
+                    <button onClick={() => updateFilter('category', '')} className="hover:text-blue-300 transition-colors">
+                      <FiX size={11} />
+                    </button>
+                  </span>
+                )}
+                {filters.brands.map(b => (
+                  <span key={b} className="flex items-center gap-1.5 glass-card text-blue-400 text-xs px-3 py-1.5 rounded-full font-medium border border-blue-500/20">
+                    {b}
+                    <button onClick={() => updateFilter('brand', b, true)} className="hover:text-blue-300 transition-colors">
+                      <FiX size={11} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Products Grid */}
+            {loading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-5">
+                {Array(limit).fill(0).map((_, i) => <SkeletonCard key={i} />)}
+              </div>
+            ) : products.length === 0 ? (
+              <div className="text-center py-24">
+                <div className="text-6xl mb-5">🔍</div>
+                <h3 className="text-xl font-semibold text-white mb-2">No products found</h3>
+                <p className="text-white/35 mb-6">Try adjusting your filters or search term</p>
+                <button onClick={clearFilters}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-xl text-sm font-semibold btn-glow transition-all duration-300">
+                  Clear Filters
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-5">
+                {products.map((p, i) => <ProductCard key={p._id} product={p} index={i} />)}
+              </div>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-center gap-2 mt-10">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => {
+                      const params = new URLSearchParams(searchParams);
+                      params.set('page', p);
+                      setSearchParams(params);
+                    }}
+                    className={`w-9 h-9 rounded-xl text-sm font-medium transition-all duration-200 ${
+                      p === page
+                        ? 'bg-blue-600 text-white shadow-[0_0_16px_rgba(37,99,235,0.4)]'
+                        : 'glass-card text-white/50 hover:text-white border border-white/08'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Mobile Filter Drawer */}
-      {showMobileFilter && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setShowMobileFilter(false)} />
-          <motion.div
-            initial={{ x: '-100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '-100%' }}
-            className="absolute left-0 top-0 h-full w-80 bg-white shadow-2xl overflow-y-auto p-5"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-gray-900 text-lg">Filters</h3>
-              <button onClick={() => setShowMobileFilter(false)} className="p-2 hover:bg-gray-100 rounded-full">
-                <FiX size={20} />
-              </button>
-            </div>
-            <FilterPanel />
-            <button
+      <AnimatePresence>
+        {showMobileFilter && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
               onClick={() => setShowMobileFilter(false)}
-              className="w-full py-3 bg-blue-600 text-white rounded-xl font-semibold mt-4"
+            />
+            <motion.div
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="absolute left-0 top-0 h-full w-80 glassmorphism shadow-[20px_0_60px_rgba(0,0,0,0.5)] overflow-y-auto p-5"
             >
-              View {total} Results
-            </button>
-          </motion.div>
-        </div>
-      )}
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="font-bold text-white text-lg">Filters</h3>
+                <button onClick={() => setShowMobileFilter(false)}
+                  className="p-2 hover:bg-white/05 rounded-xl text-white/60 hover:text-white transition-colors">
+                  <FiX size={19} />
+                </button>
+              </div>
+              <FilterPanel />
+              <button
+                onClick={() => setShowMobileFilter(false)}
+                className="w-full py-3 bg-blue-600 text-white rounded-xl font-semibold mt-4 btn-glow transition-all duration-300 text-sm"
+              >
+                View {total} Results
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
 
 export default Products;
+
