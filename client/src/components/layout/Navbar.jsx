@@ -1,266 +1,403 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiShoppingCart, FiUser, FiMenu, FiX, FiChevronDown, FiLogOut, FiPackage } from 'react-icons/fi';
+import { FiSun, FiMoon, FiShoppingBag, FiMenu, FiX, FiUser, FiSearch, FiChevronDown, FiLogOut, FiPackage } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
-import SearchBar from '../ui/SearchBar';
+import { useTheme } from '../../context/ThemeContext';
 
-const Navbar = () => {
-  const [scrolled, setScrolled] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showProductsMenu, setShowProductsMenu] = useState(false);
+export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const { itemCount, toggleDrawer } = useCart();
+  const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
+
+  const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
   const userMenuRef = useRef(null);
+  const searchRef = useRef(null);
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    const onScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   useEffect(() => {
-    const handleClickOutside = (e) => {
+    const handleClick = (e) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
-        setShowUserMenu(false);
+        setUserMenuOpen(false);
+      }
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setSearchOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  const handleLogout = () => {
-    logout();
-    setShowUserMenu(false);
-    navigate('/');
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileOpen]);
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery('');
+      setSearchOpen(false);
+      setMobileOpen(false);
+    }
   };
 
-  const navLinkClass = ({ isActive }) =>
-    `text-sm font-medium transition-colors ${isActive ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600'}`;
+  const navLinks = [
+    { to: '/', label: 'Home', end: true },
+    { to: '/products', label: 'Products' },
+    { to: '/about', label: 'About' },
+    { to: '/contact', label: 'Contact' },
+  ];
+
+  const navbarBg = scrolled
+    ? isDark
+      ? 'bg-slate-950/90 border-b border-slate-800/60 shadow-lg shadow-black/20'
+      : 'bg-white/90 border-b border-slate-200/60 shadow-lg shadow-black/5'
+    : 'bg-transparent border-b border-transparent';
 
   return (
     <>
-      <header
-        className={`fixed top-0 left-0 right-0 z-30 transition-all duration-300 ${
-          scrolled ? 'glassmorphism shadow-lg py-2' : 'bg-white py-3'
-        }`}
-      >
-        <div className="max-w-7xl mx-auto px-4 flex items-center gap-4">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <span className="text-white text-lg">👁</span>
-            </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent">
-              Lens Master
-            </span>
-          </Link>
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 backdrop-blur-xl ${navbarBg}`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <Link to="/" className="flex items-center gap-2.5 flex-shrink-0">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+                <span className="text-sm">👁</span>
+              </div>
+              <span className="font-bold text-slate-900 dark:text-white text-lg tracking-tight">
+                Lens<span className="text-blue-600 dark:text-blue-400">Master</span>
+              </span>
+            </Link>
 
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-6 ml-4">
-            <NavLink to="/" className={navLinkClass} end>Home</NavLink>
-
-            <div
-              className="relative"
-              onMouseEnter={() => setShowProductsMenu(true)}
-              onMouseLeave={() => setShowProductsMenu(false)}
-            >
-              <button className="flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors">
-                Products <FiChevronDown size={14} className={`transition-transform ${showProductsMenu ? 'rotate-180' : ''}`} />
-              </button>
-              <AnimatePresence>
-                {showProductsMenu && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 8 }}
-                    className="absolute top-full left-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden"
-                  >
-                    <Link
-                      to="/products?category=eyeglasses"
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-blue-50 text-sm text-gray-700 hover:text-blue-600 transition-colors"
-                      onClick={() => setShowProductsMenu(false)}
-                    >
-                      <span>👓</span> Eyeglasses
-                    </Link>
-                    <Link
-                      to="/products?category=sunglasses"
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-blue-50 text-sm text-gray-700 hover:text-blue-600 transition-colors"
-                      onClick={() => setShowProductsMenu(false)}
-                    >
-                      <span>🕶️</span> Sunglasses
-                    </Link>
-                    <Link
-                      to="/products?category=contact-lenses"
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-blue-50 text-sm text-gray-700 hover:text-blue-600 transition-colors"
-                      onClick={() => setShowProductsMenu(false)}
-                    >
-                      <span>🔵</span> Contact Lenses
-                    </Link>
-                    <Link
-                      to="/products"
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-blue-50 text-sm text-gray-700 hover:text-blue-600 transition-colors border-t border-gray-50"
-                      onClick={() => setShowProductsMenu(false)}
-                    >
-                      All Products →
-                    </Link>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            <NavLink to="/about" className={navLinkClass}>About</NavLink>
-            <NavLink to="/contact" className={navLinkClass}>Contact</NavLink>
-          </nav>
-
-          {/* Search Bar (desktop) */}
-          <div className="hidden lg:block flex-1 max-w-xs mx-4">
-            <SearchBar />
-          </div>
-
-          {/* Right Actions */}
-          <div className="ml-auto flex items-center gap-2">
-            {/* Search icon (mobile) */}
-            <button
-              onClick={() => setShowSearch(!showSearch)}
-              className="lg:hidden p-2 rounded-full hover:bg-gray-100 text-gray-700 transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </button>
-
-            {/* Cart */}
-            <button
-              onClick={toggleDrawer}
-              className="relative p-2 rounded-full hover:bg-gray-100 text-gray-700 transition-colors"
-            >
-              <FiShoppingCart size={20} />
-              {itemCount > 0 && (
-                <motion.span
-                  key={itemCount}
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold"
+            {/* Desktop Nav */}
+            <nav className="hidden md:flex items-center gap-1">
+              {navLinks.map(({ to, label, end }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={end}
+                  className={({ isActive }) =>
+                    `px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                      isActive
+                        ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                    }`
+                  }
                 >
-                  {itemCount > 9 ? '9+' : itemCount}
-                </motion.span>
-              )}
-            </button>
+                  {label}
+                </NavLink>
+              ))}
+            </nav>
 
-            {/* Auth */}
-            {isAuthenticated ? (
-              <div className="relative" ref={userMenuRef}>
+            {/* Right actions */}
+            <div className="flex items-center gap-2">
+              {/* Search */}
+              <div className="relative" ref={searchRef}>
                 <button
-                  onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-gray-100 transition-colors"
+                  onClick={() => setSearchOpen(!searchOpen)}
+                  className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all duration-200"
+                  aria-label="Search"
                 >
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
-                    {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                  </div>
-                  <span className="hidden sm:block text-sm font-medium text-gray-700 max-w-[80px] truncate">
-                    {user?.name?.split(' ')[0]}
-                  </span>
-                  <FiChevronDown size={14} className="text-gray-400" />
+                  <FiSearch className="w-5 h-5" />
                 </button>
                 <AnimatePresence>
-                  {showUserMenu && (
+                  {searchOpen && (
                     <motion.div
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 8 }}
-                      className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden"
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 top-full mt-2 w-72"
                     >
-                      <Link to="/profile" onClick={() => setShowUserMenu(false)} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-sm text-gray-700">
-                        <FiUser size={14} /> My Profile
-                      </Link>
-                      <Link to="/profile" onClick={() => setShowUserMenu(false)} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-sm text-gray-700">
-                        <FiPackage size={14} /> My Orders
-                      </Link>
-                      <hr className="border-gray-100" />
-                      <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 hover:bg-red-50 text-sm text-red-600 w-full text-left">
-                        <FiLogOut size={14} /> Logout
-                      </button>
+                      <form onSubmit={handleSearch}>
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl shadow-black/10 dark:shadow-black/40 border border-slate-200 dark:border-slate-700/50 overflow-hidden">
+                          <div className="flex items-center px-4 py-3 gap-3">
+                            <FiSearch className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                            <input
+                              autoFocus
+                              type="text"
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                              placeholder="Search eyewear..."
+                              className="flex-1 text-sm bg-transparent outline-none text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
+                            />
+                            <button
+                              type="submit"
+                              className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                            >
+                              Search
+                            </button>
+                          </div>
+                        </div>
+                      </form>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
-            ) : (
-              <div className="hidden sm:flex items-center gap-2">
-                <Link to="/login" className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors">
-                  Login
-                </Link>
-                <Link to="/register" className="px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors">
-                  Register
-                </Link>
-              </div>
-            )}
 
-            {/* Mobile hamburger */}
-            <button
-              onClick={() => setMobileOpen(!mobileOpen)}
-              className="md:hidden p-2 rounded-full hover:bg-gray-100 text-gray-700 transition-colors"
-            >
-              {mobileOpen ? <FiX size={20} /> : <FiMenu size={20} />}
-            </button>
+              {/* Theme Toggle */}
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all duration-200"
+                aria-label="Toggle theme"
+              >
+                <AnimatePresence mode="wait">
+                  {isDark ? (
+                    <motion.div
+                      key="sun"
+                      initial={{ rotate: -90, opacity: 0 }}
+                      animate={{ rotate: 0, opacity: 1 }}
+                      exit={{ rotate: 90, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <FiSun className="w-5 h-5" />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="moon"
+                      initial={{ rotate: 90, opacity: 0 }}
+                      animate={{ rotate: 0, opacity: 1 }}
+                      exit={{ rotate: -90, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <FiMoon className="w-5 h-5" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </button>
+
+              {/* Cart */}
+              <button
+                onClick={toggleDrawer}
+                className="relative p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all duration-200"
+                aria-label="Cart"
+              >
+                <FiShoppingBag className="w-5 h-5" />
+                <AnimatePresence>
+                  {itemCount > 0 && (
+                    <motion.span
+                      key="badge"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      exit={{ scale: 0 }}
+                      className="absolute -top-1 -right-1 w-5 h-5 bg-blue-600 text-white text-xs font-bold rounded-full flex items-center justify-center leading-none"
+                    >
+                      {itemCount > 9 ? '9+' : itemCount}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </button>
+
+              {/* Auth */}
+              {isAuthenticated ? (
+                <div className="relative hidden md:block" ref={userMenuRef}>
+                  <button
+                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all duration-200"
+                  >
+                    <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow">
+                      {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                    </div>
+                    <span className="text-sm font-medium max-w-20 truncate">{user?.name?.split(' ')[0]}</span>
+                    <FiChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  <AnimatePresence>
+                    {userMenuOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 top-full mt-2 w-52 bg-white dark:bg-slate-900 rounded-2xl shadow-xl shadow-black/10 dark:shadow-black/40 border border-slate-200 dark:border-slate-700/50 overflow-hidden"
+                      >
+                        <div className="p-3 border-b border-slate-100 dark:border-slate-800">
+                          <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{user?.name}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user?.email}</p>
+                        </div>
+                        <div className="p-1.5">
+                          <Link
+                            to="/profile"
+                            onClick={() => setUserMenuOpen(false)}
+                            className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                          >
+                            <FiUser className="w-4 h-4" />
+                            My Profile
+                          </Link>
+                          <Link
+                            to="/profile"
+                            onClick={() => setUserMenuOpen(false)}
+                            className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                          >
+                            <FiPackage className="w-4 h-4" />
+                            My Orders
+                          </Link>
+                          <hr className="border-slate-100 dark:border-slate-800 my-1" />
+                          <button
+                            onClick={() => { logout(); setUserMenuOpen(false); }}
+                            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                          >
+                            <FiLogOut className="w-4 h-4" />
+                            Logout
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                <div className="hidden md:flex items-center gap-2">
+                  <Link
+                    to="/login"
+                    className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all duration-200"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl hover:from-blue-700 hover:to-purple-700 shadow-lg shadow-blue-500/25 transition-all duration-200 hover:shadow-blue-500/40 hover:-translate-y-0.5"
+                  >
+                    Sign Up
+                  </Link>
+                </div>
+              )}
+
+              {/* Mobile hamburger */}
+              <button
+                onClick={() => setMobileOpen(!mobileOpen)}
+                className="md:hidden p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all duration-200"
+                aria-label="Toggle menu"
+              >
+                {mobileOpen ? <FiX className="w-5 h-5" /> : <FiMenu className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
         </div>
-
-        {/* Mobile Search Bar */}
-        <AnimatePresence>
-          {showSearch && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="lg:hidden px-4 pb-3 overflow-hidden"
-            >
-              <SearchBar onClose={() => setShowSearch(false)} />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Mobile Menu */}
-        <AnimatePresence>
-          {mobileOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="md:hidden border-t border-gray-100 bg-white overflow-hidden"
-            >
-              <nav className="px-4 py-3 space-y-1">
-                <Link to="/" onClick={() => setMobileOpen(false)} className="block py-2.5 text-sm font-medium text-gray-700 hover:text-blue-600">Home</Link>
-                <Link to="/products" onClick={() => setMobileOpen(false)} className="block py-2.5 text-sm font-medium text-gray-700 hover:text-blue-600">All Products</Link>
-                <Link to="/products?category=eyeglasses" onClick={() => setMobileOpen(false)} className="block py-2.5 text-sm text-gray-600 pl-4 hover:text-blue-600">👓 Eyeglasses</Link>
-                <Link to="/products?category=sunglasses" onClick={() => setMobileOpen(false)} className="block py-2.5 text-sm text-gray-600 pl-4 hover:text-blue-600">🕶️ Sunglasses</Link>
-                <Link to="/about" onClick={() => setMobileOpen(false)} className="block py-2.5 text-sm font-medium text-gray-700 hover:text-blue-600">About</Link>
-                <Link to="/contact" onClick={() => setMobileOpen(false)} className="block py-2.5 text-sm font-medium text-gray-700 hover:text-blue-600">Contact</Link>
-                {!isAuthenticated ? (
-                  <div className="flex gap-2 pt-2">
-                    <Link to="/login" onClick={() => setMobileOpen(false)} className="flex-1 py-2.5 text-sm font-medium text-center border border-blue-600 text-blue-600 rounded-xl">Login</Link>
-                    <Link to="/register" onClick={() => setMobileOpen(false)} className="flex-1 py-2.5 text-sm font-semibold text-center bg-blue-600 text-white rounded-xl">Register</Link>
-                  </div>
-                ) : (
-                  <>
-                    <Link to="/profile" onClick={() => setMobileOpen(false)} className="block py-2.5 text-sm font-medium text-gray-700 hover:text-blue-600">My Profile</Link>
-                    <button onClick={() => { handleLogout(); setMobileOpen(false); }} className="block py-2.5 text-sm font-medium text-red-600 w-full text-left">Logout</button>
-                  </>
-                )}
-              </nav>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </header>
+
+      {/* Mobile Menu */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileOpen(false)}
+              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden"
+            />
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.2 }}
+              className="fixed top-16 left-0 right-0 z-40 md:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-xl"
+            >
+              <div className="p-4 space-y-1">
+                {/* Mobile Search */}
+                <form onSubmit={handleSearch} className="mb-3">
+                  <div className="flex items-center gap-3 bg-slate-100 dark:bg-slate-800 rounded-xl px-4 py-2.5">
+                    <FiSearch className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search eyewear..."
+                      className="flex-1 text-sm bg-transparent outline-none text-slate-900 dark:text-white placeholder-slate-400"
+                    />
+                  </div>
+                </form>
+
+                {navLinks.map(({ to, label, end }) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    end={end}
+                    onClick={() => setMobileOpen(false)}
+                    className={({ isActive }) =>
+                      `block px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                        isActive
+                          ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                          : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`
+                    }
+                  >
+                    {label}
+                  </NavLink>
+                ))}
+
+                <hr className="border-slate-200 dark:border-slate-800 my-2" />
+
+                {isAuthenticated ? (
+                  <>
+                    <div className="flex items-center gap-3 px-4 py-3">
+                      <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold">
+                        {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white">{user?.name}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{user?.email}</p>
+                      </div>
+                    </div>
+                    <Link
+                      to="/profile"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    >
+                      <FiUser className="w-4 h-4" />
+                      My Profile
+                    </Link>
+                    <button
+                      onClick={() => { logout(); setMobileOpen(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    >
+                      <FiLogOut className="w-4 h-4" />
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  <div className="flex flex-col gap-2 pt-1">
+                    <Link
+                      to="/login"
+                      onClick={() => setMobileOpen(false)}
+                      className="block text-center px-4 py-3 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                    >
+                      Login
+                    </Link>
+                    <Link
+                      to="/register"
+                      onClick={() => setMobileOpen(false)}
+                      className="block text-center px-4 py-3 rounded-xl text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg"
+                    >
+                      Create Account
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Spacer */}
       <div className="h-16" />
     </>
   );
-};
-
-export default Navbar;
+}

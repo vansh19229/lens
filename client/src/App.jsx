@@ -1,7 +1,8 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, NavLink } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
+import { ThemeProvider } from './context/ThemeContext';
 
 // Layout
 import Navbar from './components/layout/Navbar';
@@ -32,7 +33,14 @@ import AdminUsers from './pages/admin/AdminUsers';
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
   const location = useLocation();
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>;
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-10 h-10 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm text-slate-500 dark:text-slate-400">Loading...</p>
+      </div>
+    </div>
+  );
   if (!isAuthenticated) return <Navigate to="/login" state={{ from: location }} replace />;
   return children;
 };
@@ -40,38 +48,65 @@ const ProtectedRoute = ({ children }) => {
 const AdminRoute = ({ children }) => {
   const { isAuthenticated, isAdmin, loading } = useAuth();
   const location = useLocation();
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>;
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+      <div className="w-10 h-10 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
   if (!isAuthenticated) return <Navigate to="/admin/login" state={{ from: location }} replace />;
   if (!isAdmin) return <Navigate to="/" replace />;
   return children;
 };
 
+const adminNavItems = [
+  { href: '/admin', label: 'Dashboard', icon: '📊', exact: true },
+  { href: '/admin/products', label: 'Products', icon: '👓' },
+  { href: '/admin/orders', label: 'Orders', icon: '📦' },
+  { href: '/admin/users', label: 'Users', icon: '👥' },
+];
+
 const AdminLayout = ({ children }) => (
-  <div className="min-h-screen bg-gray-100 flex">
-    {/* Admin Sidebar */}
-    <aside className="w-56 bg-gray-900 text-white flex-shrink-0 min-h-screen">
-      <div className="p-5 border-b border-gray-800">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-sm">👁</div>
-          <span className="font-bold">Lens Admin</span>
+  <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex">
+    <aside className="w-60 bg-slate-900 dark:bg-slate-950 text-white flex-shrink-0 min-h-screen border-r border-slate-800 flex flex-col">
+      <div className="p-5 border-b border-slate-800">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-sm shadow-lg">
+            👁
+          </div>
+          <div>
+            <span className="font-bold text-white text-sm">Lens Master</span>
+            <p className="text-xs text-slate-400">Admin Panel</p>
+          </div>
         </div>
       </div>
-      <nav className="p-3 space-y-1">
-        {[
-          { href: '/admin', label: '📊 Dashboard' },
-          { href: '/admin/products', label: '👓 Products' },
-          { href: '/admin/orders', label: '📦 Orders' },
-          { href: '/admin/users', label: '👥 Users' },
-        ].map(({ href, label }) => (
-          <a key={href} href={href} className="block px-3 py-2.5 rounded-xl text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors">
+      <nav className="p-3 space-y-1 flex-1">
+        {adminNavItems.map(({ href, label, icon, exact }) => (
+          <NavLink
+            key={href}
+            to={href}
+            end={exact}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ${
+                isActive
+                  ? 'bg-blue-600 text-white font-medium shadow-lg shadow-blue-600/20'
+                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+              }`
+            }
+          >
+            <span className="text-base">{icon}</span>
             {label}
-          </a>
+          </NavLink>
         ))}
-        <hr className="border-gray-800 my-2" />
-        <a href="/" className="block px-3 py-2.5 rounded-xl text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors">
-          ← Back to Store
-        </a>
       </nav>
+      <div className="p-3 border-t border-slate-800">
+        <NavLink
+          to="/"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-400 hover:bg-slate-800 hover:text-white transition-all duration-200"
+        >
+          <span>←</span>
+          Back to Store
+        </NavLink>
+      </div>
     </aside>
     <div className="flex-1 overflow-auto">
       {children}
@@ -80,7 +115,7 @@ const AdminLayout = ({ children }) => (
 );
 
 const PublicLayout = ({ children }) => (
-  <div className="min-h-screen flex flex-col">
+  <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
     <Navbar />
     <CartDrawer />
     <main className="flex-1">{children}</main>
@@ -91,31 +126,26 @@ const PublicLayout = ({ children }) => (
 function AppRoutes() {
   return (
     <Routes>
-      {/* Admin routes - standalone layout */}
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/admin" element={<AdminRoute><AdminLayout><AdminDashboard /></AdminLayout></AdminRoute>} />
       <Route path="/admin/products" element={<AdminRoute><AdminLayout><AdminProducts /></AdminLayout></AdminRoute>} />
       <Route path="/admin/orders" element={<AdminRoute><AdminLayout><AdminOrders /></AdminLayout></AdminRoute>} />
       <Route path="/admin/users" element={<AdminRoute><AdminLayout><AdminUsers /></AdminLayout></AdminRoute>} />
 
-      {/* Auth pages - no nav/footer */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
-      {/* Public pages */}
       <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
       <Route path="/products" element={<PublicLayout><Products /></PublicLayout>} />
       <Route path="/products/:id" element={<PublicLayout><ProductDetail /></PublicLayout>} />
       <Route path="/about" element={<PublicLayout><About /></PublicLayout>} />
       <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
 
-      {/* Protected pages */}
       <Route path="/cart" element={<PublicLayout><ProtectedRoute><Cart /></ProtectedRoute></PublicLayout>} />
       <Route path="/checkout" element={<PublicLayout><ProtectedRoute><Checkout /></ProtectedRoute></PublicLayout>} />
       <Route path="/profile" element={<PublicLayout><ProtectedRoute><Profile /></ProtectedRoute></PublicLayout>} />
       <Route path="/orders/:id" element={<PublicLayout><ProtectedRoute><OrderDetail /></ProtectedRoute></PublicLayout>} />
 
-      {/* 404 */}
       <Route path="*" element={<PublicLayout><NotFound /></PublicLayout>} />
     </Routes>
   );
@@ -124,19 +154,28 @@ function AppRoutes() {
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <CartProvider>
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              style: { borderRadius: '12px', fontFamily: 'Inter, sans-serif', fontSize: '14px' },
-              success: { style: { background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' } },
-              error: { style: { background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca' } },
-            }}
-          />
-          <AppRoutes />
-        </CartProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <CartProvider>
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                style: {
+                  borderRadius: '12px',
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: '14px',
+                  background: '#fff',
+                  color: '#1e293b',
+                  boxShadow: '0 10px 40px rgba(0,0,0,0.12)',
+                },
+                success: { style: { background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' } },
+                error: { style: { background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca' } },
+              }}
+            />
+            <AppRoutes />
+          </CartProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }
