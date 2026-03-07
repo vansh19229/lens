@@ -5,7 +5,7 @@ import { FiX, FiTrash2, FiPlus, FiMinus, FiShoppingBag, FiArrowRight } from 'rea
 import { useCart } from '../../context/CartContext';
 
 export default function CartDrawer() {
-  const { items, isOpen, toggleDrawer, updateQuantity, removeItem, subtotal } = useCart();
+  const { items, isOpen, toggleDrawer, updateQuantity, removeFromCart, subtotal } = useCart();
 
   const shipping = subtotal >= 999 ? 0 : 99;
   const gst = Math.round(subtotal * 0.18);
@@ -102,20 +102,20 @@ export default function CartDrawer() {
                         <span className="font-bold text-slate-900 dark:text-white">₹{item.price.toLocaleString()}</span>
                         <div className="flex items-center gap-1.5">
                           <button
-                            onClick={() => updateQuantity(item._id, item.lensCustomization, item.quantity - 1)}
+                            onClick={() => updateQuantity(item._id, item.quantity - 1)}
                             className="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600 flex items-center justify-center transition-colors"
                           >
                             <FiMinus className="w-3 h-3 text-slate-600 dark:text-slate-300" />
                           </button>
                           <span className="w-7 text-center text-sm font-medium text-slate-900 dark:text-white">{item.quantity}</span>
                           <button
-                            onClick={() => updateQuantity(item._id, item.lensCustomization, item.quantity + 1)}
+                            onClick={() => updateQuantity(item._id, item.quantity + 1)}
                             className="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600 flex items-center justify-center transition-colors"
                           >
                             <FiPlus className="w-3 h-3 text-slate-600 dark:text-slate-300" />
                           </button>
                           <button
-                            onClick={() => removeItem(item._id, item.lensCustomization)}
+                            onClick={() => removeFromCart(item._id)}
                             className="w-7 h-7 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center justify-center ml-1 text-slate-400 hover:text-red-500 transition-colors"
                           >
                             <FiTrash2 className="w-3.5 h-3.5" />
