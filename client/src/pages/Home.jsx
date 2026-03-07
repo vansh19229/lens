@@ -1,188 +1,217 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiTruck, FiShield, FiStar, FiRefreshCw, FiArrowRight } from 'react-icons/fi';
+import { FiArrowRight, FiStar, FiPackage, FiShield, FiRefreshCw, FiTruck } from 'react-icons/fi';
 import SearchBar from '../components/ui/SearchBar';
 import ProductCard from '../components/ui/ProductCard';
 import SkeletonCard from '../components/ui/SkeletonCard';
-import StarRating from '../components/ui/StarRating';
 import api from '../utils/api';
 
-const CATEGORIES = [
-  { id: 'eyeglasses', label: 'Eyeglasses', emoji: '👓', desc: 'Prescription & fashion frames', color: 'from-blue-500 to-blue-600' },
-  { id: 'sunglasses', label: 'Sunglasses', emoji: '🕶️', desc: 'UV protection & style', color: 'from-purple-500 to-purple-600' },
-  { id: 'contact-lenses', label: 'Contact Lenses', emoji: '🔵', desc: 'Daily & monthly wear', color: 'from-teal-500 to-teal-600' },
+const stats = [
+  { value: '50K+', label: 'Happy Customers' },
+  { value: '1000+', label: 'Styles Available' },
+  { value: '4.9', label: 'Average Rating' },
+  { value: 'Free', label: 'Returns & Exchanges' },
 ];
 
-const BENEFITS = [
-  { icon: FiTruck, title: 'Free Delivery', desc: 'On orders above ₹999' },
-  { icon: FiStar, title: '1000+ Styles', desc: 'Latest frames & designs' },
-  { icon: FiShield, title: 'Lens Experts', desc: 'Certified opticians' },
-  { icon: FiRefreshCw, title: 'Easy Returns', desc: '30-day return policy' },
+const categories = [
+  {
+    title: 'Eyeglasses',
+    description: 'Prescription & fashion frames for every face shape',
+    emoji: '👓',
+    gradient: 'from-blue-500/20 to-purple-500/20 dark:from-blue-500/10 dark:to-purple-500/10',
+    border: 'border-blue-200 dark:border-blue-800/50',
+    href: '/products?category=eyeglasses',
+    cta: 'Shop Eyeglasses',
+  },
+  {
+    title: 'Sunglasses',
+    description: 'Protect your eyes in style with our premium collection',
+    emoji: '🕶️',
+    gradient: 'from-amber-500/20 to-orange-500/20 dark:from-amber-500/10 dark:to-orange-500/10',
+    border: 'border-amber-200 dark:border-amber-800/50',
+    href: '/products?category=sunglasses',
+    cta: 'Shop Sunglasses',
+  },
+  {
+    title: 'Contact Lenses',
+    description: 'Crystal clear vision without the frame',
+    emoji: '💧',
+    gradient: 'from-emerald-500/20 to-teal-500/20 dark:from-emerald-500/10 dark:to-teal-500/10',
+    border: 'border-emerald-200 dark:border-emerald-800/50',
+    href: '/products?category=contact-lenses',
+    cta: 'Shop Lenses',
+  },
 ];
 
-const TESTIMONIALS = [
-  { name: 'Priya Sharma', review: 'Amazing quality glasses! The lens customization was so easy. Delivery was super fast.', rating: 5, location: 'Mumbai' },
-  { name: 'Rahul Verma', review: 'Best eyewear shopping experience. The frames are stylish and very affordable.', rating: 5, location: 'Delhi' },
-  { name: 'Sneha Patel', review: 'Great collection and helpful customer service. My progressive lenses fit perfectly.', rating: 4, location: 'Ahmedabad' },
+const benefits = [
+  { icon: FiTruck, title: 'Free Delivery', desc: 'On all orders over ₹999', color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+  { icon: FiShield, title: 'Authentic Products', desc: '100% genuine eyewear brands', color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-900/20' },
+  { icon: FiRefreshCw, title: 'Easy Returns', desc: '30-day hassle-free returns', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+  { icon: FiPackage, title: 'Expert Support', desc: 'Lens experts ready to help', color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-900/20' },
 ];
 
-const wordVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: (i) => ({ opacity: 1, y: 0, transition: { delay: i * 0.08, duration: 0.5 } }),
-};
+const testimonials = [
+  { name: 'Priya Sharma', location: 'Mumbai', rating: 5, text: 'Amazing quality and super fast delivery! Love my new glasses.', avatar: 'P' },
+  { name: 'Rahul Mehta', location: 'Delhi', rating: 5, text: 'Best eyewear store online. The lens customization is fantastic.', avatar: 'R' },
+  { name: 'Anita Patel', location: 'Bangalore', rating: 5, text: 'Premium quality at affordable prices. Highly recommend!', avatar: 'A' },
+];
 
-const Home = () => {
-  const [trending, setTrending] = useState([]);
+export default function Home() {
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
   useEffect(() => {
-    api.get('/products?sort=rating&limit=8')
-      .then(res => setTrending(res.data.products || []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    const fetchProducts = async () => {
+      try {
+        const res = await api.get('/products?sort=rating&limit=8');
+        setProducts(res.data.products || []);
+      } catch {
+        // Silent fail
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
   }, []);
 
-  const headline = 'See Clearly. Live Confidently.'.split(' ');
-
   return (
-    <div>
-      {/* Hero Section */}
-      <section className="relative min-h-[85vh] flex items-center overflow-hidden">
-        {/* Animated gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-blue-800 to-purple-900">
-          <motion.div
-            animate={{ x: [0, 30, 0], y: [0, -20, 0] }}
-            transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-            className="absolute -top-20 -right-20 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl"
-          />
-          <motion.div
-            animate={{ x: [0, -20, 0], y: [0, 30, 0] }}
-            transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
-            className="absolute -bottom-20 -left-20 w-80 h-80 bg-blue-400/20 rounded-full blur-3xl"
-          />
-          <motion.div
-            animate={{ scale: [1, 1.1, 1] }}
-            transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-3xl"
-          />
+    <div className="min-h-screen">
+      {/* Hero */}
+      <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 dark:from-slate-950 dark:via-blue-950/20 dark:to-purple-950/20">
+        {/* Background decoration */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-400/10 dark:bg-blue-500/5 rounded-full blur-3xl" />
+          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-purple-400/10 dark:bg-purple-500/5 rounded-full blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-blue-400/5 to-purple-400/5 dark:from-blue-500/3 dark:to-purple-500/3 rounded-full blur-3xl" />
         </div>
 
-        {/* Floating glasses decoration */}
-        <motion.div
-          animate={{ y: [-10, 10, -10], rotate: [-2, 2, -2] }}
-          transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute right-8 top-1/4 text-8xl opacity-20 hidden xl:block"
-        >
-          👓
-        </motion.div>
-        <motion.div
-          animate={{ y: [10, -10, 10], rotate: [2, -2, 2] }}
-          transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-          className="absolute right-32 bottom-1/4 text-6xl opacity-20 hidden xl:block"
-        >
-          🕶️
-        </motion.div>
-
-        <div className="relative z-10 max-w-7xl mx-auto px-4 py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative z-10">
           <div className="max-w-3xl">
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 mb-6"
-            >
-              <span className="text-amber-400 text-sm">⭐</span>
-              <span className="text-white/90 text-sm font-medium">India's #1 Online Eyewear Store</span>
-            </motion.div>
-
-            <h1 className="text-5xl md:text-7xl font-extrabold text-white leading-tight mb-6">
-              {headline.map((word, i) => (
-                <motion.span key={i} custom={i} initial="hidden" animate="visible" variants={wordVariants} className="inline-block mr-3">
-                  {word}
-                </motion.span>
-              ))}
-            </h1>
-
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.8, duration: 0.6 }}
-              className="text-xl text-white/75 mb-8 leading-relaxed"
-            >
-              Premium eyewear crafted for the modern lifestyle. Over 1000+ styles starting at just ₹499.
-            </motion.p>
-
+            {/* Badge */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1, duration: 0.5 }}
-              className="flex flex-wrap gap-3 mb-8"
+              transition={{ duration: 0.5 }}
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-medium mb-6 border border-blue-200 dark:border-blue-800/50"
+            >
+              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
+              Premium Eyewear Collection 2024
+            </motion.div>
+
+            {/* Headline */}
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight mb-6"
+            >
+              See the World
+              <br />
+              <span className="gradient-text">in Style</span>
+            </motion.h1>
+
+            {/* Subheadline */}
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="text-xl text-slate-600 dark:text-slate-400 leading-relaxed mb-10 max-w-xl"
+            >
+              Discover 1000+ premium eyewear styles. From prescription glasses to designer sunglasses — crafted for your vision.
+            </motion.p>
+
+            {/* Search */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="mb-8 max-w-xl"
+            >
+              <SearchBar
+                placeholder="Search by brand, style, or type..."
+                className="w-full"
+              />
+            </motion.div>
+
+            {/* CTAs */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="flex flex-wrap gap-3"
             >
               <Link
                 to="/products?category=eyeglasses"
-                className="flex items-center gap-2 px-7 py-3.5 bg-white text-blue-700 font-bold rounded-2xl hover:bg-blue-50 transition-all hover:-translate-y-0.5 shadow-lg text-sm"
+                className="inline-flex items-center gap-2 px-7 py-3.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-2xl shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all duration-300 hover:-translate-y-0.5"
               >
-                👓 Shop Eyeglasses
+                Shop Eyeglasses
+                <FiArrowRight className="w-4 h-4" />
               </Link>
               <Link
                 to="/products?category=sunglasses"
-                className="flex items-center gap-2 px-7 py-3.5 bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white font-bold rounded-2xl hover:bg-white/20 transition-all hover:-translate-y-0.5 text-sm"
+                className="inline-flex items-center gap-2 px-7 py-3.5 bg-white dark:bg-slate-800 text-slate-800 dark:text-white font-semibold rounded-2xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm transition-all duration-300 hover:-translate-y-0.5"
               >
-                🕶️ Explore Sunglasses
+                Explore Sunglasses
               </Link>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.2, duration: 0.5 }}
-              className="max-w-xl"
-            >
-              <SearchBar className="w-full" />
             </motion.div>
           </div>
         </div>
       </section>
 
+      {/* Stats */}
+      <section className="py-12 border-y border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+            {stats.map((stat, i) => (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: i * 0.1 }}
+                className="text-center"
+              >
+                <div className="text-3xl font-bold gradient-text mb-1">{stat.value}</div>
+                <div className="text-sm text-slate-500 dark:text-slate-400">{stat.label}</div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Categories */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4">
+      <section className="py-20 bg-slate-50 dark:bg-slate-950">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-10"
+            className="text-center mb-12"
           >
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Shop by Category</h2>
-            <p className="text-gray-500">Find the perfect eyewear for every occasion</p>
+            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-3">Shop by Category</h2>
+            <p className="text-slate-500 dark:text-slate-400 max-w-xl mx-auto">Find the perfect eyewear that matches your style and vision needs</p>
           </motion.div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            {CATEGORIES.map((cat, i) => (
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {categories.map((cat, i) => (
               <motion.div
-                key={cat.id}
+                key={cat.title}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
+                transition={{ duration: 0.4, delay: i * 0.1 }}
               >
-                <Link to={`/products?category=${cat.id}`}>
-                  <div className={`relative bg-gradient-to-br ${cat.color} rounded-2xl p-8 text-white overflow-hidden group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1`}>
-                    <motion.div
-                      animate={{ rotate: [0, 5, -5, 0] }}
-                      transition={{ duration: 4, repeat: Infinity, delay: i * 0.5 }}
-                      className="text-6xl mb-4"
-                    >
-                      {cat.emoji}
-                    </motion.div>
-                    <h3 className="text-xl font-bold mb-1">{cat.label}</h3>
-                    <p className="text-white/80 text-sm mb-4">{cat.desc}</p>
-                    <div className="flex items-center gap-1 text-sm font-semibold">
-                      Shop Now <FiArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                    </div>
-                    <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-white/10 rounded-full" />
-                    <div className="absolute -right-4 -top-4 w-20 h-20 bg-white/5 rounded-full" />
+                <Link
+                  to={cat.href}
+                  className={`group flex flex-col p-8 rounded-3xl bg-gradient-to-br ${cat.gradient} border ${cat.border} hover:shadow-xl hover:shadow-black/5 dark:hover:shadow-black/30 transition-all duration-300 hover:-translate-y-1`}
+                >
+                  <span className="text-5xl mb-4 transition-transform duration-300 group-hover:scale-110 inline-block">{cat.emoji}</span>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{cat.title}</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 flex-1">{cat.description}</p>
+                  <div className="flex items-center gap-2 text-sm font-semibold text-blue-600 dark:text-blue-400 group-hover:gap-3 transition-all duration-200">
+                    {cat.cta}
+                    <FiArrowRight className="w-4 h-4" />
                   </div>
                 </Link>
               </motion.div>
@@ -192,49 +221,71 @@ const Home = () => {
       </section>
 
       {/* Trending Products */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="flex items-end justify-between mb-10"
-          >
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">Trending Now</h2>
-              <p className="text-gray-500">Most loved styles this season</p>
-            </div>
-            <Link to="/products" className="flex items-center gap-1 text-blue-600 font-semibold text-sm hover:gap-2 transition-all">
-              View All <FiArrowRight size={16} />
-            </Link>
-          </motion.div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+      <section className="py-20 bg-white dark:bg-slate-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-end justify-between mb-12">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+            >
+              <p className="text-sm font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-2">Top Picks</p>
+              <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white">Trending Now</h2>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+            >
+              <Link
+                to="/products?sort=rating"
+                className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors group"
+              >
+                View All
+                <FiArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </motion.div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
             {loading
-              ? Array(8).fill(0).map((_, i) => <SkeletonCard key={i} />)
-              : trending.map((p, i) => <ProductCard key={p._id} product={p} index={i} />)
+              ? Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
+              : products.map((product, i) => (
+                  <ProductCard key={product._id} product={product} index={i} />
+                ))
             }
           </div>
         </div>
       </section>
 
       {/* Benefits */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-            {BENEFITS.map((b, i) => (
+      <section className="py-20 bg-slate-50 dark:bg-slate-950">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-3">Why Choose LensMaster?</h2>
+            <p className="text-slate-500 dark:text-slate-400">Experience premium eyewear shopping like never before</p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {benefits.map((benefit, i) => (
               <motion.div
-                key={b.title}
+                key={benefit.title}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="text-center p-6 rounded-2xl hover:bg-blue-50 transition-colors"
+                transition={{ duration: 0.4, delay: i * 0.1 }}
+                className="flex flex-col items-center text-center p-8 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-black/20 transition-all duration-300"
               >
-                <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <b.icon size={24} className="text-blue-600" />
+                <div className={`w-14 h-14 ${benefit.bg} rounded-2xl flex items-center justify-center mb-4`}>
+                  <benefit.icon className={`w-6 h-6 ${benefit.color}`} />
                 </div>
-                <h3 className="font-bold text-gray-900 mb-1">{b.title}</h3>
-                <p className="text-sm text-gray-500">{b.desc}</p>
+                <h3 className="font-bold text-slate-900 dark:text-white mb-2">{benefit.title}</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{benefit.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -242,36 +293,41 @@ const Home = () => {
       </section>
 
       {/* Testimonials */}
-      <section className="py-16 bg-gradient-to-br from-blue-50 to-purple-50">
-        <div className="max-w-7xl mx-auto px-4">
+      <section className="py-20 bg-white dark:bg-slate-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-10"
+            className="text-center mb-12"
           >
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">What Our Customers Say</h2>
-            <p className="text-gray-500">Trusted by 50,000+ happy customers across India</p>
+            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-3">Loved by Thousands</h2>
+            <p className="text-slate-500 dark:text-slate-400">Real reviews from our happy customers</p>
           </motion.div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {TESTIMONIALS.map((t, i) => (
+            {testimonials.map((t, i) => (
               <motion.div
                 key={t.name}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="bg-white rounded-2xl p-6 shadow-md"
+                transition={{ duration: 0.4, delay: i * 0.1 }}
+                className="p-8 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-800"
               >
-                <StarRating rating={t.rating} size="md" />
-                <p className="text-gray-700 text-sm leading-relaxed mt-3 mb-4">"{t.review}"</p>
+                <div className="flex items-center gap-1 mb-4">
+                  {[...Array(t.rating)].map((_, j) => (
+                    <FiStar key={j} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
+                <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed mb-5">"{t.text}"</p>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
-                    {t.name.charAt(0)}
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">
+                    {t.avatar}
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900 text-sm">{t.name}</p>
-                    <p className="text-xs text-gray-400">{t.location}</p>
+                    <p className="font-semibold text-slate-900 dark:text-white text-sm">{t.name}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{t.location}</p>
                   </div>
                 </div>
               </motion.div>
@@ -281,28 +337,40 @@ const Home = () => {
       </section>
 
       {/* CTA Banner */}
-      <section className="py-16 bg-gradient-to-r from-blue-700 to-purple-700">
-        <div className="max-w-4xl mx-auto px-4 text-center">
+      <section className="py-20 bg-gradient-to-r from-blue-600 to-purple-700 relative overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-20 -right-20 w-80 h-80 bg-white/5 rounded-full" />
+          <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-white/5 rounded-full" />
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
               Start Your Vision Journey Today
             </h2>
-            <p className="text-white/80 text-lg mb-8">Free eye test consultation with every purchase above ₹2,000</p>
-            <Link
-              to="/products"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-white text-blue-700 font-bold rounded-2xl hover:bg-blue-50 transition-all hover:-translate-y-0.5 shadow-xl text-base"
-            >
-              Shop Now <FiArrowRight size={18} />
-            </Link>
+            <p className="text-blue-100 text-lg mb-8 max-w-xl mx-auto">
+              Get free delivery on your first order + exclusive member discounts
+            </p>
+            <div className="flex flex-wrap justify-center gap-4">
+              <Link
+                to="/products"
+                className="px-8 py-4 bg-white text-blue-700 font-bold rounded-2xl hover:bg-blue-50 shadow-lg transition-all duration-300 hover:-translate-y-0.5"
+              >
+                Shop Now
+              </Link>
+              <Link
+                to="/register"
+                className="px-8 py-4 bg-white/10 text-white font-bold rounded-2xl border border-white/30 hover:bg-white/20 transition-all duration-300 hover:-translate-y-0.5"
+              >
+                Create Free Account
+              </Link>
+            </div>
           </motion.div>
         </div>
       </section>
     </div>
   );
-};
-
-export default Home;
+}
