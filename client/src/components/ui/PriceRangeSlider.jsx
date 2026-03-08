@@ -17,38 +17,28 @@ const PriceRangeSlider = ({ min = 0, max = 10000, value, onChange }) => {
     onChange([localMin, val]);
   };
 
+  const leftPct = ((localMin - min) / (max - min)) * 100;
+  const rightPct = 100 - ((localMax - min) / (max - min)) * 100;
+
   return (
-    <div className="space-y-3">
-      <div className="flex justify-between text-sm font-medium text-gray-700">
+    <div className="space-y-3 py-1">
+      <div className="flex justify-between text-xs font-medium text-white/60">
         <span>{formatPrice(localMin)}</span>
         <span>{formatPrice(localMax)}</span>
       </div>
-      <div className="relative h-2">
-        <div className="absolute inset-0 bg-gray-200 rounded-full" />
+      <div className="relative h-1.5">
+        <div className="absolute inset-0 bg-white/10 rounded-full" />
         <div
-          className="absolute h-2 bg-blue-500 rounded-full"
-          style={{
-            left: `${((localMin - min) / (max - min)) * 100}%`,
-            right: `${100 - ((localMax - min) / (max - min)) * 100}%`,
-          }}
+          className="absolute h-1.5 bg-blue-500 rounded-full"
+          style={{ left: `${leftPct}%`, right: `${rightPct}%` }}
         />
         <input
-          type="range"
-          min={min}
-          max={max}
-          step={100}
-          value={localMin}
-          onChange={handleMinChange}
-          className="absolute inset-0 w-full opacity-0 cursor-pointer h-2"
+          type="range" min={min} max={max} step={100} value={localMin} onChange={handleMinChange}
+          className="absolute inset-0 w-full opacity-0 cursor-pointer h-1.5"
         />
         <input
-          type="range"
-          min={min}
-          max={max}
-          step={100}
-          value={localMax}
-          onChange={handleMaxChange}
-          className="absolute inset-0 w-full opacity-0 cursor-pointer h-2"
+          type="range" min={min} max={max} step={100} value={localMax} onChange={handleMaxChange}
+          className="absolute inset-0 w-full opacity-0 cursor-pointer h-1.5"
         />
       </div>
     </div>
@@ -56,3 +46,4 @@ const PriceRangeSlider = ({ min = 0, max = 10000, value, onChange }) => {
 };
 
 export default PriceRangeSlider;
+
